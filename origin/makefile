@@ -1,10 +1,17 @@
-ASM := nasm
-FLAGS : = -f elf
+ASM		:= nasm
+ASMFLAGS:= -f elf
+
+CC		:= gcc
+CFLAGS	:=
+
+LINK	:= ld
+LDFLAGS	:= -m elf_i386
+
+DEPS	:=
 
 
-LINK := ld
+OBJS	:= 
 
-OBJ := 
 
 os: 
 
