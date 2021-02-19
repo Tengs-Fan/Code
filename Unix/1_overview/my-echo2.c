@@ -10,8 +10,8 @@ main(void)
 	int n;
 	char buf[BUFF_SIZE];
 
-	while (( n = fread(STDIN_FILENO,BUFF_SIZE,buf,BUFF_SIZE)) > 0){
-		if ( fwrite(STDOUT_FILENO,BUFF_SIZE, buf, n) != n){
+	while (( n = read(STDIN_FILENO,buf,BUFF_SIZE)) > 0){
+		if ( write(STDOUT_FILENO,buf, n) != n){
 			printf("write error");
 			exit(1);
 		}
