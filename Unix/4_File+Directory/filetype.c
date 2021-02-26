@@ -1,3 +1,4 @@
+#include <sys/stat.h>
 #include "apue.h"
 
 int
