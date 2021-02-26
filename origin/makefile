@@ -16,5 +16,12 @@ OBJS	:=
 os: 
 
 
-.PHONY :clean
+.PHONY :clean run debug
 clean:
+	rm -rf *.o
+
+run:
+	@bochs 
+
+debug:
+	@bochs
