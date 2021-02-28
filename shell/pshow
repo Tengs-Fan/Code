@@ -1,0 +1,9 @@
+#!/bin/sh 
+echo Number of argument: $#
+echo First argument: $1 
+shift
+echo Third argument: $2
+echo Number of argument: $#
+echo Process ID $$
+
+echo $0 : bad option $BADPARM 1>&2

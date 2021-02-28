@@ -37,13 +37,26 @@ SECTION loader vstart=LOADER_BASE_ADDR
 	gdt_ptr			dw	GDT_LIMIT
 					dd	GDT_BASE
 
+
+; -------------------------------------
+;detect memory size
+; -------------------------------------
+
+	total_mem_bytes	dd	0
+
+	ards_buf times 250	db	0
+	ards_nr			dw	0
+
+
+	
+	;for other utility
+	; -------------------------------------
+
 	loader_msg		db	'2 loader in real.'
 
 ; -------------------------------------
 loader_start:
 ; -------------------------------------
-
-  ; mov	 sp, LOADER_BASE_ADDR
 
 ;------------------------------------------------------------
 ;INT 0x10    功能号:0x13    功能描述:打印字符串
@@ -68,6 +81,11 @@ loader_start:
 	int	 0x10            ; 10h 号中断
 ;------------------------------------------------------------
 
+;------------------------------------------------------------
+;Detect Memory Size
+;------------------------------------------------------------
+
+%include "loader_func.S"
 
 ;------------------------------------------------------------
 ;Prepare to enter Protected Mode
@@ -107,6 +125,17 @@ p_mode_start:
 	mov gs,ax
 
 	mov byte [gs:160],'P'
+
+	mov byte [gs:168],dl
+		shr edx,8
+	mov byte [gs:166],dl
+		shr edx,8
+	mov byte [gs:164],dl
+		shr edx,8
+	mov byte [gs:162],dl
+
+
+
 
 	jmp $
 

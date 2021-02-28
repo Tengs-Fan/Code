@@ -18,10 +18,10 @@ OBJS		:=
 
 .PHONY :MBR loader kernel preprocess run clean 
 MBR:
-	$(ASM) $(LDFLAGS) $(MBR).S -o $(MBR).bin 
+	$(ASM) $(LDFLAGS) $(MBR).S -o $(MBR).bin -O0
 
 loader: MBR
-	$(ASM) $(LDFLAGS) $(LOADER).S -o $(LOADER).bin 
+	$(ASM) $(LDFLAGS) $(LOADER).S -o $(LOADER).bin -O0
 
 kernel: loader
 	@dd if=$(MBR).bin     of=$(IMAGE) bs=512 count=1 seek=0 conv=notrunc

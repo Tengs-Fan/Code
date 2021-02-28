@@ -1,0 +1,8 @@
+for file in * ; do
+	if [ -f $file ]; then
+		ls -lisa $file
+		file $file
+	else
+		echo $filename is not a regular file.
+	fi
+done

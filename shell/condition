@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if [ x"$1" = hi ]; then
+	echo 'The first argument was "hi"'
+else
+	echo -n 'The first argument was not "hi" -- '  
+	echo It was '"'$1'"'
+fi
+
+if grep -q daemon /etc/passwd; then
+	echo The daemon user is in the passwd file.
+else
+	echo There is a big problem. daemon is not in the passwd file.
+fi
