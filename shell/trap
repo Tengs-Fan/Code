@@ -1,0 +1,15 @@
+#!/bin/sh
+
+trap "echo i refuse to interrupt!; exit 1" INT
+
+echo i am executing
+
+echo i am the power
+
+echo i am gonna sleep
+
+sleep 2
+
+echo i am wake
+
+echo goodbye
