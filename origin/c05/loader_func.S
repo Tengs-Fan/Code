@@ -126,4 +126,73 @@
 	.mem_get_ok:
 		mov [total_mem_bytes], edx
 	
-	jmp $
+;------------------------------------------------------------
+setup_page:
+;Create Page Directory and Page Tables
+;PD 1M ~ 1M+4K, PTs follow it
+;------------------------------------------------------------
+;no paramaters
+
+;no return
+	
+	;clean up memory
+	;------------------
+	mov ecx,4096
+		mov esi,0
+	.clear_page_dir:
+		mov byte [PAGE_DIR_TABLE_POS + esi],0
+		inc esi
+	loop .clear_page_dir
+
+	;Page Directory Entry
+	;------------------
+		;location of a page table (no order)
+		mov eax,PAGE_DIR_TABLE_POS + 0x1000
+		or  eax,PG_US_U | PG_RW_W | PG_P	;User, Writable, In-memory
+		
+		;let 0x0 ~ 0x40_000(4M)-1 points to the PT above
+		mov [PAGE_DIR_TABLE_POS + 0x0],eax
+		;let 0xc000_0000(3G) ~ 0xc040_000(3G + 4M)-1 points to the PT above
+		mov [PAGE_DIR_TABLE_POS + 0xc00],eax
+
+		;Page Directory is also a Page Table
+		sub eax,0x1000
+		;let 4G-4M ~ 4G points to this PT
+		mov [PAGE_DIR_TABLE_POS + 4092],eax
+
+	;Page Table Entry
+	;------------------
+		;a normal PT, no order 
+		mov ebx,PAGE_DIR_TABLE_POS + 0x1000
+		;Physical Address
+		;points to 0~4K
+		mov edx,PG_US_U | PG_RW_W | PG_P
+			mov esi,0
+		;only map 0~1M to the PT(4M) above 
+		mov ecx,256								;1M/4K = 256 
+		.create_pte:
+			mov [ebx + esi*4],edx
+			add edx,4096
+			inc esi	
+		loop .create_pte
+
+	;PDE of 3G+4M ~ 4G-4M
+	;kernel space, shared between users
+	;------------------
+		;a normal PT
+		mov eax,PAGE_DIR_TABLE_POS + 0x2000
+		or  eax,PG_US_U | PG_RW_W | PG_P
+		
+		;let PTs take their place
+		;here we choose to let PT follow closely after PD in memory
+		;make PT address =  PD address + PD-order * 4096 + 4096(PD) + 4096(PT) 
+		mov ebx,PAGE_DIR_TABLE_POS
+			mov esi,769
+		mov ecx,254
+		.create_kernel_pde:
+			mov [ebx + esi*4],eax
+			inc esi
+			add eax,0x1000
+		loop .create_kernel_pde
+
+ret

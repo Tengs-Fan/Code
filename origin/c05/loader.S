@@ -82,12 +82,6 @@ loader_start:
 ;------------------------------------------------------------
 
 ;------------------------------------------------------------
-;Detect Memory Size
-;------------------------------------------------------------
-
-%include "loader_func.S"
-
-;------------------------------------------------------------
 ;Prepare to enter Protected Mode
 ;------------------------------------------------------------
 
@@ -124,19 +118,36 @@ p_mode_start:
 		mov ax,SELECTOR_VIDEO
 	mov gs,ax
 
-	mov byte [gs:160],'P'
+;	mov byte [gs:160],'P'
 
-	mov byte [gs:168],dl
-		shr edx,8
-	mov byte [gs:166],dl
-		shr edx,8
-	mov byte [gs:164],dl
-		shr edx,8
-	mov byte [gs:162],dl
+;------------------------------------------------------------
+;Initialize Page Directory and Tables
+;------------------------------------------------------------
+	call setup_page 
 
+	sgdt [gdt_ptr]
 
+	;video segment
+	mov ebx, [gdt_ptr + 2]
+	or dword [ebx + 0x18 + 4], 0xc000_0000	 ;third segment, change the segment base address
+	;stack
+	add esp,0xc000_0000
+	;GDT
+	add dword [gdt_ptr + 2], 0xc000_0000
 
+	; ---- ---- open CR3 ---- ----
+		mov eax, PAGE_DIR_TABLE_POS
+	mov cr3,eax
+	;---------- open PG of CR0 ----------  
+		mov eax,cr0
+		or eax,0x8000_0000
+	mov cr0,eax
+
+	;reload GDT
+	lgdt [gdt_ptr]
+
+	mov byte [gs:160], 'V'
 
 	jmp $
 
-;------------------------------------------------------------
+%include "loader_func.S"

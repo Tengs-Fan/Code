@@ -1,0 +1,10 @@
+#!/bin/sh
+
+for file in *.jpg; do
+	if [ ! -f $file ]; then
+		exit
+	fi
+	b=$(basename $file .jpg)
+	echo converting $b.jpg to $b.png
+	mv $b.jpg  $b.png
+done

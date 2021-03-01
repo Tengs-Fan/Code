@@ -40,7 +40,11 @@ preprocess: kernel
 	@cat -n $(LOADER).xpd
 
 run: kernel 
+<<<<<<< HEAD
 	@$(BOCHS) -f $(CONFIG)
+=======
+	@bochs -qf bochsrc.mac
+>>>>>>> 4f3cb19d7a1e6b0bcf743f5f561714d9109e92f0
 
 clean:
 	@rm -rf *.o *.xpd *.bin *.out
