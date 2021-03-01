@@ -12,9 +12,15 @@ CFLAGS		:=
 LINK		:=	ld
 LFLAGS		:=	-m elf_i386
 
-DEPS		:=
+UNAME		:=	$(shell uname)
+ifeq ($(UNAME),Linux)
+	CONFIG	:=	bochsrc.wsl
+	BOCHS	:=	bochs
+else
+	CONFIG	:=	bochsrc.mac
+	BOCHS	:=	bochs
+endif
 
-OBJS		:= 
 
 .PHONY :MBR loader kernel preprocess run clean 
 MBR:
@@ -29,10 +35,12 @@ kernel: loader
 
 preprocess: kernel
 	$(ASM) $(LDFLAGS)  -E $(MBR).S -o $(MBR).xpd
+	$(ASM) $(LDFLAGS)  -E $(LOADER).S -o $(LOADER).xpd
 	@cat -n $(MBR).xpd
+	@cat -n $(LOADER).xpd
 
 run: kernel 
-	@bochs -f bochsrc.mac
+	@$(BOCHS) -f $(CONFIG)
 
 clean:
 	@rm -rf *.o *.xpd *.bin *.out
