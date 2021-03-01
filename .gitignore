@@ -1,5 +1,5 @@
 *.gch
 *.swp
 *.o
-*.out
+a.out
 *.img
