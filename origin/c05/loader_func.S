@@ -168,12 +168,12 @@ setup_page:
 		;points to 0~4K
 		mov edx,PG_US_U | PG_RW_W | PG_P
 			mov esi,0
-		;only <D-f>map 0~1M to the PT(4M) above 
+		;only map 0~1M to the PT(4M) above 
 		mov ecx,256								;1M/4K = 256 
 		.create_pte:
 			mov [ebx + esi*4],edx
 			add edx,4096
-			add esi,1
+			inc esi	
 		loop .create_pte
 
 	;PDE of 3G+4M ~ 4G-4M
@@ -185,7 +185,7 @@ setup_page:
 		
 		;let PTs take their place
 		;here we choose to let PT follow closely after PD in memory
-		;make PT address = PD-order * 4096 + 4096(size of PD) + PD address
+		;make PT address =  PD address + PD-order * 4096 + 4096(PD) + 4096(PT) 
 		mov ebx,PAGE_DIR_TABLE_POS
 			mov esi,769
 		mov ecx,254
@@ -196,6 +196,3 @@ setup_page:
 		loop .create_kernel_pde
 
 ret
- 
-
-

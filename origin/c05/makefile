@@ -32,7 +32,7 @@ preprocess: kernel
 	@cat -n $(MBR).xpd
 
 run: kernel 
-	@bochs -f bochsrc.mac
+	@bochs -qf bochsrc.mac
 
 clean:
 	@rm -rf *.o *.xpd *.bin *.out
