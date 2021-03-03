@@ -1,4 +1,3 @@
-#!/usr/local/Caskroom/miniconda/base/envs/JIT_present/bin/python
 import numpy as np
 
 def bubblesort(X):
