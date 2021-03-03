@@ -2,5 +2,5 @@
 .DS_Store
 *.swp
 *.o
-*.out
+a.out
 *.img
