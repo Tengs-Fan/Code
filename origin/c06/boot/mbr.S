@@ -1,5 +1,5 @@
 %include "boot.inc"
-;extern _read_n_disk
+;extern _read_n_disk_16
 
 ;主引导程序 
 ;------------------------------------------------------------
@@ -60,7 +60,7 @@ SECTION MBR vstart=0x7c00
 	mov byte [gs:0x09],0xA4
 ;------------------------------------------------------------
 ;load loader code from disk to memory
-;use _read_n_disk() in func.S
+;use _read_n_disk_16() in func.S
 ;------------------------------------------------------------
 ;EAX	= LBA sector
 ;DS:BX	= Memory Address to Write
@@ -72,7 +72,7 @@ SECTION MBR vstart=0x7c00
 	mov ds,bx
 	mov bx,LOADER_BASE_ADDR
 	mov cx,4
-	call _read_n_disk
+	call _read_n_disk_16
 
 	jmp LOADER_BASE_ADDR
 

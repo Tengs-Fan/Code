@@ -51,4 +51,5 @@ PG_RW_W		equ		 10b
 PG_US_S		equ		000b
 PG_US_U		equ		100b
 
-
+; ---- ---- ELF property ---- ----
+PT_NULL		equ		  0

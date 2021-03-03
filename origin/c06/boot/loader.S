@@ -37,7 +37,6 @@ SECTION loader vstart=LOADER_BASE_ADDR
 	gdt_ptr			dw	GDT_LIMIT
 					dd	GDT_BASE
 
-
 ; -------------------------------------
 ;detect memory size
 ; -------------------------------------
@@ -46,13 +45,6 @@ SECTION loader vstart=LOADER_BASE_ADDR
 
 	ards_buf times 250	db	0
 	ards_nr			dw	0
-
-
-	
-	;for other utility
-	; -------------------------------------
-
-	loader_msg		db	'2 loader in real.'
 
 ; -------------------------------------
 loader_start:
@@ -125,8 +117,7 @@ p_mode_start:
 	mov eax, KERNEL_START_SECTOR
 	mov ebx, KERNEL_BIN_BASE_ADDR
 		mov ecx,20
-	call _read_n_disk
-
+	call _read_n_disk_16
 
 ;------------------------------------------------------------
 ;Initialize Page Directory and Tables
@@ -156,10 +147,47 @@ p_mode_start:
 
 ;------------------------------------------------------------
 ;copy kernel to the right place
+;kernel is load in KERNEL_BIN_BASE_ADDR as ELF file
+;load the segment to right place
 ;------------------------------------------------------------
+;ebx = Address of Program Header
+;ecx = Number of Program Header		;
+;edx = Size of Program Header		;e_phentsize
 
 
+kernel_init:
+		
+			xor edx,edx
+		mov dx, [KERNEL_BIN_BASE_ADDR + 42]		;e_phentsize, the size of program header
+
+			mov ebx, [KERNEL_BIN_BASE_ADDR + 28];e_phoff, the offset of first PH
+		add ebx, KERNEL_BIN_BASE_ADDR		
+
+	mov cx, [KERNEL_BIN_BASE_ADDR + 44]			;e_phnum, the number of PH
+		
+	.each_segment:
+		; =0 indicates the PH is not used
+		cmp byte [ebx + 0],PT_NULL		
+	je .PTNULL
+
+		;size 
+		push dword [ebx + 16]		;p_filesz ; size of this PH				
+		;src
+			mov eax, [ebx + 4]
+			add KERNEL_BIN_BASE_ADDR
+		push eax
+		;dest
+		push dowrd [ebx + 8]
+	
+	call mem_cpy
+			add esp,12
+
+	.PTNULL:
+		;point to next PH
+		add	ebx, edx						;size of PH
+	loop .each_segment
+
+ret 
 
 
-%include "mbr_func.S"
 %include "loader_func.S"

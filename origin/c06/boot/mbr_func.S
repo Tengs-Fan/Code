@@ -1,8 +1,8 @@
-global _read_n_disk
+global _read_n_disk_16
 
 ;------------------------------------------------------------
 ;Read n Sectors in Hard Disk
-_read_n_disk:
+_read_n_disk_16:
 ;------------------------------------------------------------
 ;EAX	= LBA sector
 ;DS:BX	= Memory Address to Write
