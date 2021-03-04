@@ -7,11 +7,11 @@ OBJ			:=	main
 
 KERNEL		:=	kernel
 
-CC			:=	clang
-CFLAGS		:=	-target i386-pc-none-elf
+CC			:=	x86_64-elf-gcc
+CFLAGS		:=	-m32 -z nognustack
 
 LD			:=	x86_64-elf-ld
-LDFLAGS		:=	-Ttext 0xc0001500 -m elf_i386
+LDFLAGS		:=	-Ttext 0xc0001500 -m elf_i386 -z stack-size=0  
 
 
 object:

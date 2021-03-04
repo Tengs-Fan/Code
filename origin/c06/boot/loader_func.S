@@ -212,7 +212,9 @@ mem_cpy:
 		mov edi, [ebp + 8]		;dest
 		mov esi, [ebp + 12]		;src
 		mov ecx, [ebp + 16] 	;size
+mov byte [gs:160],'9'
 		rep movsb
+mov byte [gs:160],'0'
 
 		pop ecx
 		pop ebx
@@ -220,17 +222,66 @@ ret
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+;copy kernel to the right place
+;kernel is load in KERNEL_BIN_BASE_ADDR as ELF file
+;load the segment to right place
+;------------------------------------------------------------
+;ebx = Address of Program Header
+;ecx = Number of Program Header		;
+;edx = Size of Program Header		;e_phentsize
+
+
+
+kernel_init:
+		
+			xor edx,edx
+		mov dx, [KERNEL_BIN_BASE_ADDR + 42]		;e_phentsize, the size of program header
+
+			mov ebx, [KERNEL_BIN_BASE_ADDR + 28];e_phoff, the offset of first PH
+		add ebx, KERNEL_BIN_BASE_ADDR		
+
+	mov cx, [KERNEL_BIN_BASE_ADDR + 44]			;e_phnum, the number of PH
+	
+	.each_segment:
+		; =0 indicates the PH is not used
+		cmp byte [ebx + 0],PT_NULL		
+mov byte [gs:160],'1'
+	je .PTNULL
+
+mov byte [gs:160],'2'
+		;size 
+		push dword [ebx + 16]		;p_filesz ; size of this PH				
+		;src
+			mov eax, [ebx + 4]
+			add eax, KERNEL_BIN_BASE_ADDR
+		push eax
+		;dest
+		push dword [ebx + 8]
+mov byte [gs:160],'3'
+	
+	call mem_cpy
+			add esp,12
+
+mov byte [gs:160],'4'
+	.PTNULL:
+		;point to next PH
+		add	ebx, edx						;size of PH
+	loop .each_segment
+
+ret 
+;------------------------------------------------------------
 
 ;------------------------------------------------------------
 ;Read n Sectors in Hard Disk
 _read_n_disk_32:
 ;------------------------------------------------------------
 ;EAX	= LBA sector
-;DS:BX	= Memory Address to Write
-;CX		= Sectors to Read
+;EBX	= Memory Address to Write
+;ECX	= Sectors to Read
 ;No Return Value
 
-	push cx
+	push ecx
 
 	;Step 1: set parameter: sectors to read
 	push eax
@@ -281,15 +332,15 @@ _read_n_disk_32:
 
 	;Step 5: read data from 0x1f0 and put it to memory{bx}
 
-		pop ax			;previously in cx(sectors to read)
+		pop eax			;previously in ecx(sectors to read)
 		mov dx,512/2	;read 2 bytes each time
 		mul dx
 	mov cx,ax
 	.read_data:
 		mov dx,0x1f0
 	in ax,dx
-	mov [bx],ax
-		add bx,2
+	mov [ebx],ax
+		add ebx,2
 	loop .read_data
 
 	ret

@@ -50,28 +50,6 @@ SECTION loader vstart=LOADER_BASE_ADDR
 loader_start:
 ; -------------------------------------
 
-;------------------------------------------------------------
-;INT 0x10    功能号:0x13    功能描述:打印字符串
-;------------------------------------------------------------
-;AH 子功能号=13H
-;BH = 页码
-;BL = 属性(若AL=00H或01H)
-;CX＝字符串长度
-;(DH、DL)＝坐标(行、列)
-;ES:BP＝字符串地址 
-;AL＝显示输出方式
-;   0——字符串中只含显示字符，其显示属性在BL中。显示后，光标位置不变
-;   1——字符串中只含显示字符，其显示属性在BL中。显示后，光标位置改变
-;   2——字符串中含显示字符和显示属性。显示后，光标位置不变
-;   3——字符串中含显示字符和显示属性。显示后，光标位置改变
-;无返回值
- 	mov	 bp, loader_msg   ; ES:BP = 字符串地址
-	mov	 cx, 17			 ; CX = 字符串长度
-	mov	 ax, 0x1301		 ; AH = 13,  AL = 01h
-	mov	 bx, 0x001f		 ; 页号为0(BH = 0) 蓝底粉红字(BL = 1fh)
-	mov	 dx, 0x1800		 ;
-	int	 0x10            ; 10h 号中断
-;------------------------------------------------------------
 
 ;------------------------------------------------------------
 ;Prepare to enter Protected Mode
@@ -110,15 +88,16 @@ p_mode_start:
 		mov ax,SELECTOR_VIDEO
 	mov gs,ax
 
-;	mov byte [gs:160],'P'
+	mov byte [gs:160],'P'
 ;------------------------------------------------------------
 ;load kernel
 ;------------------------------------------------------------
 	mov eax, KERNEL_START_SECTOR
 	mov ebx, KERNEL_BIN_BASE_ADDR
 		mov ecx,20
-	call _read_n_disk_16
+	call _read_n_disk_32
 
+	mov byte [gs:160],'L'
 ;------------------------------------------------------------
 ;Initialize Page Directory and Tables
 ;------------------------------------------------------------
@@ -146,48 +125,17 @@ p_mode_start:
 	lgdt [gdt_ptr]
 
 ;------------------------------------------------------------
-;copy kernel to the right place
-;kernel is load in KERNEL_BIN_BASE_ADDR as ELF file
-;load the segment to right place
+;Enter Kernel
 ;------------------------------------------------------------
-;ebx = Address of Program Header
-;ecx = Number of Program Header		;
-;edx = Size of Program Header		;e_phentsize
+	;refresh gdt(not needed)
+	jmp SELECTOR_CODE:enter_kernel
+enter_kernel:
+	mov byte [gs:160],'E'
 
-
-kernel_init:
-		
-			xor edx,edx
-		mov dx, [KERNEL_BIN_BASE_ADDR + 42]		;e_phentsize, the size of program header
-
-			mov ebx, [KERNEL_BIN_BASE_ADDR + 28];e_phoff, the offset of first PH
-		add ebx, KERNEL_BIN_BASE_ADDR		
-
-	mov cx, [KERNEL_BIN_BASE_ADDR + 44]			;e_phnum, the number of PH
-		
-	.each_segment:
-		; =0 indicates the PH is not used
-		cmp byte [ebx + 0],PT_NULL		
-	je .PTNULL
-
-		;size 
-		push dword [ebx + 16]		;p_filesz ; size of this PH				
-		;src
-			mov eax, [ebx + 4]
-			add KERNEL_BIN_BASE_ADDR
-		push eax
-		;dest
-		push dowrd [ebx + 8]
-	
-	call mem_cpy
-			add esp,12
-
-	.PTNULL:
-		;point to next PH
-		add	ebx, edx						;size of PH
-	loop .each_segment
-
-ret 
+	call kernel_init
+	mov byte [gs:160],'K'
+	mov esp, KERNEL_STACK_TOP
+	jmp KERNEL_ENTRY_POINT
 
 
 %include "loader_func.S"

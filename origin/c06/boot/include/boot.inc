@@ -10,7 +10,11 @@ PAGE_DIR_TABLE_POS		equ 0x10_0000
 KERNEL_START_SECTOR		equ 0x9	
 
 ; ---- ---- Place in Memory to Store Kernel ---- ----
-KERNEL_BIN_BASE_ADDR	equ	0x8_0000
+KERNEL_BIN_BASE_ADDR	equ	0x7_0000
+
+; ---- ---- After Entered kernel ---- ----
+KERNEL_ENTRY_POINT		equ 0xc000_1500
+KERNEL_STACK_TOP		equ	0x9f00		;PCB is 4K aligned
 
 ; ---- ---- Set Global Descriptor Table(GDT) ---- ----
 DESC_G_4K		equ	  1_00000000000000000000000b
