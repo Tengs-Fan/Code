@@ -2,16 +2,14 @@
 	path = verilog
 	url = https://github.com/Ngox-Tsjengh/verilog.git
 
-
 [submodule "Unix"]
 	path = Unix
-	url = git@github.com:Ngox-Tsjengh/Unix.git
+	url = https://github.com:Ngox-Tsjengh/Unix.git
 
 [submodule "Origin-OS-x86"]
 	path = Origin-OS-x86
-	url = git@github.com:Ngox-Tsjengh/Origin-OS-x86.git
-
+	url = https://github.com:Ngox-Tsjengh/Origin-OS-x86.git
 
 [submodule "rust-OS-RISCV"]
 	path = rust-OS-RISCV"
-	url = git@github.com:Ngox-Tsjengh/rust-OS-RISCV.git
+	url = https://github.com:Ngox-Tsjengh/rust-OS-RISCV.git
