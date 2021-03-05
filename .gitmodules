@@ -1,3 +1,8 @@
 [submodule "verilog"]
 	path = verilog
 	url = https://github.com/Ngox-Tsjengh/verilog.git
+
+
+[submodule "Unix"]
+	path = Unix
+	url = git@github.com:Ngox-Tsjengh/Unix.git
