@@ -10,3 +10,8 @@
 [submodule "Origin-OS-x86"]
 	path = Origin-OS-x86
 	url = git@github.com:Ngox-Tsjengh/Origin-OS-x86.git
+
+
+[submodule "rust-OS-RISCV"]
+	path = rust-OS-RISCV"
+	url = git@github.com:Ngox-Tsjengh/rust-OS-RISCV.git
