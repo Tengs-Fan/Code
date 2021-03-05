@@ -6,7 +6,7 @@ TARGET = myprog
 all: myprog
 
 myprog: $(OBJS)        
-	$(CC) -o myprog $(OBJS)
+	$(CC) -o $(TARGET) $(OBJS)
 
 clean:
 	rm -rf *.o $(TARGET)
