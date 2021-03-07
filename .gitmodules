@@ -13,3 +13,7 @@
 [submodule "rust-OS-RISCV"]
 	path = rust-OS-RISCV
 	url = https://github.com/Ngox-Tsjengh/rust-OS-RISCV.git 
+
+[submodule "verilog-CPU-openMIPS"]
+	path = verilog-CPU-openMIPS
+	url = https://github.com/Ngox-Tsjengh/verilog-CPU-openMIPS.git 
