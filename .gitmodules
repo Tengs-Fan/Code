@@ -17,3 +17,7 @@
 [submodule "verilog-CPU-openMIPS"]
 	path = verilog-CPU-openMIPS
 	url = https://github.com/Ngox-Tsjengh/verilog-CPU-openMIPS.git 
+
+[submodule "linux-OS-x86"]
+	path = linux-OS-x86
+	url = git@github.com:Ngox-Tsjengh/linux-OS-x86.git
