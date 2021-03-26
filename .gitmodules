@@ -21,3 +21,7 @@
 [submodule "linux-OS-x86"]
 	path = linux-OS-x86
 	url = git@github.com:Ngox-Tsjengh/linux-OS-x86.git
+
+[submodule "compile"]
+	path = compile
+	url = git@github.com:Ngox-Tsjengh/compile.git
