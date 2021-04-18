@@ -24,9 +24,9 @@
 
 [submodule "compile"]
 	path = compile
-	url = git@github.com:Ngox-Tsjengh/compile.git
+	url = https://github.com/Ngox-Tsjengh/compile.git
 
 [submodule "Linux"]
 	path = Linux
-	url = git@github.com:Ngox-Tsjengh/Linux.git
+	url = https://github.com/Ngox-Tsjengh/Linux.git
 
