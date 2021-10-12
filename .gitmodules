@@ -33,3 +33,6 @@
 [submodule "chisel-examples"]
 	path = chisel-examples
 	url = https://github.com/Ngox-Tsjengh/chisel-examples.git
+[submodule "OSTEP"]
+	path = OSTEP
+	url = https://github.com/Ngox-Tsjengh/OSTEP.git
