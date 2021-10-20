@@ -33,10 +33,7 @@
 [submodule "chisel-examples"]
 	path = chisel-examples
 	url = https://github.com/Ngox-Tsjengh/chisel-examples.git
-<<<<<<< HEAD
 	
-=======
 [submodule "OSTEP"]
 	path = OSTEP
 	url = https://github.com/Ngox-Tsjengh/OSTEP.git
->>>>>>> 7997070c498081d6b689ee30d1b4e8b417c06f78
