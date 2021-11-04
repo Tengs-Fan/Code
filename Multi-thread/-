@@ -1,0 +1,6 @@
+find: /usr/sbin/authserver: Permission denied
+find: /usr/local/nginx/scgi_temp: Permission denied
+find: /usr/local/nginx/uwsgi_temp: Permission denied
+find: /usr/local/nginx/proxy_temp: Permission denied
+find: /usr/local/nginx/fastcgi_temp: Permission denied
+find: /usr/local/nginx/client_body_temp: Permission denied
