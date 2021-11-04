@@ -36,17 +36,12 @@ int get (counter_t *c) {
 counter_t counter;
 
 void addNumber(void* arg) {
-	int threadID = *(int*)(arg+1);
-	for (int i=0; i<12800000 / *(int*)arg; i++) {
+	int threadNum = *(int*)arg;
+	int threadID = ((int*)arg)[1];
+	for (int i=0; i<12800000 / threadNum; i++) {
 		increment(&counter);
 	}
 	printf("I am here: %d\n", threadID);
-}
-
-void decNumber() {
-	for (int i=0; i<20000000; i++) {
-		increment(&counter);
-	}
 }
 
 int main(int argc, char** argv) {
@@ -60,8 +55,9 @@ int main(int argc, char** argv) {
 	{
 		args[2*i] = threadNum;
 		args[2*i+1] = i;
-		Pthread_create(&p[i], NULL, (void*)addNumber, (void*) (args+2*i));
+		Pthread_create(&p[i], NULL, (void*)addNumber, (void*) (&args[2*i]));
 	}
+
 	for (int i = 0; i < threadNum; i++)
 	{
 		Pthread_join(p[i], NULL);
