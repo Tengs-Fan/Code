@@ -1,6 +1,7 @@
 #include "common_threads.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "sys/time.h"
 
 #define THREAD_POOL_SIZE 128
 
@@ -45,12 +46,17 @@ void addNumber(void* arg) {
 }
 
 int main(int argc, char** argv) {
+
+	struct timeval begin, end;
+	double cpu_time = 0.0;
+	int ret = gettimeofday(&begin, NULL);
+
 	pthread_t p[THREAD_POOL_SIZE];
+	//int* args = malloc(sizeof(int) * 2 * (THREAD_POOL_SIZE) );
+	int args[2*THREAD_POOL_SIZE];
 	int threadNum = atoi(argv[1]);
 	init(&counter);
 
-	//int* args = malloc(sizeof(int) * 2 * (THREAD_POOL_SIZE) );
-	int args[2*THREAD_POOL_SIZE];
 	for (int i = 0; i < threadNum; i++)
 	{
 		args[2*i] = threadNum;
@@ -62,7 +68,11 @@ int main(int argc, char** argv) {
 	{
 		Pthread_join(p[i], NULL);
 	}
-	int ret = get(&counter);
-	printf("return %d\n", ret);
+	ret = get(&counter);
+
+	gettimeofday(&end, NULL);
+	cpu_time = (end.tv_sec - begin.tv_sec) * 1000;
+	cpu_time += (end.tv_usec - begin.tv_usec) / 1000;
+	printf("Return %d\n Using CPU in %lf ms \n", ret, cpu_time);
 	return 0;
 }
