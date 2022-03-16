@@ -37,3 +37,7 @@
 [submodule "OSTEP"]
 	path = OSTEP
 	url = https://github.com/Ngox-Tsjengh/OSTEP.git
+
+[submodule "Multi-thread"]
+	path = Multi-thread
+	url = https://github.com/Ngox-Tsjengh/Multi-thread.git
