@@ -41,3 +41,7 @@
 [submodule "Multi-thread"]
 	path = Multi-thread
 	url = https://github.com/Ngox-Tsjengh/Multi-thread.git
+
+[submodule "Multi-thread"]
+	path = SICP
+	url = https://github.com/Ngox-Tsjengh/SICP.git
