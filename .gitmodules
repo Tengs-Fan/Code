@@ -1,50 +1,50 @@
 [submodule "verilog"]
 	path = verilog
-	url = https://github.com/Ngox-Tsjengh/verilog.git
+	url = https://github.com/Tengs-Penkwe/verilog.git
 
 [submodule "Unix"]
 	path = Unix
-	url = https://github.com/Ngox-Tsjengh/Unix.git
+	url = https://github.com/Tengs-Penkwe/Unix.git
 
 [submodule "Origin-OS-x86"]
 	path = Origin-OS-x86
-	url = https://github.com/Ngox-Tsjengh/Origin-OS-x86.git
+	url = https://github.com/Tengs-Penkwe/Origin-OS-x86.git
 
 [submodule "rust-OS-RISCV"]
 	path = rust-OS-RISCV
-	url = https://github.com/Ngox-Tsjengh/rust-OS-RISCV.git 
+	url = https://github.com/Tengs-Penkwe/rust-OS-RISCV.git 
 
 [submodule "verilog-CPU-openMIPS"]
 	path = verilog-CPU-openMIPS
-	url = https://github.com/Ngox-Tsjengh/verilog-CPU-openMIPS.git 
+	url = https://github.com/Tengs-Penkwe/verilog-CPU-openMIPS.git 
 
 [submodule "linux-OS-x86"]
 	path = linux-OS-x86
-	url = https://github.com/Ngox-Tsjengh/linux-OS-x86.git
+	url = https://github.com/Tengs-Penkwe/linux-OS-x86.git
 
 [submodule "compile"]
 	path = compile
-	url = https://github.com/Ngox-Tsjengh/compile.git
+	url = https://github.com/Tengs-Penkwe/compile.git
 
 [submodule "Linux"]
 	path = Linux
-	url = https://github.com/Ngox-Tsjengh/Linux.git
+	url = https://github.com/Tengs-Penkwe/Linux.git
 
 [submodule "chisel-examples"]
 	path = chisel-examples
-	url = https://github.com/Ngox-Tsjengh/chisel-examples.git
+	url = https://github.com/Tengs-Penkwe/chisel-examples.git
 	
 [submodule "OSTEP"]
 	path = OSTEP
-	url = https://github.com/Ngox-Tsjengh/OSTEP.git
+	url = https://github.com/Tengs-Penkwe/OSTEP.git
 
 [submodule "Multi-thread"]
 	path = Multi-thread
-	url = https://github.com/Ngox-Tsjengh/Multi-thread.git
+	url = https://github.com/Tengs-Penkwe/Multi-thread.git
 
 [submodule "SICP"]
 	path = SICP
-	url = https://github.com/Ngox-Tsjengh/SICP.git
+	url = https://github.com/Tengs-Penkwe/SICP.git
 
 [submodule "Compiler"]
 	path = Compiler
