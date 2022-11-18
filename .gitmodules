@@ -48,4 +48,4 @@
 
 [submodule "Compiler"]
 	path = Compiler
-	url = https://github.com/Tengs-Penkwe/Compiler.git
+	url = git@github.com:Tengs-Penkwe/Compiler.git
