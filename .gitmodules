@@ -45,3 +45,7 @@
 [submodule "SICP"]
 	path = SICP
 	url = https://github.com/Ngox-Tsjengh/SICP.git
+
+[submodule "Compiler"]
+	path = Compiler
+	url = git@github.com:Tengs-Penkwe/Compiler.git
