@@ -45,3 +45,6 @@
 [submodule "Compiler"]
 	path = Compiler
 	url = git@github.com:Tengs-Penkwe/Compiler.git
+[submodule "Zig"]
+	path = Zig
+	url = git@github.com:Tengs-Penkwe/Zig.git
