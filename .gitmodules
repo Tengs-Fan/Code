@@ -18,9 +18,9 @@
 	path = verilog-CPU-openMIPS
 	url = https://github.com/Tengs-Penkwe/verilog-CPU-openMIPS.git 
 
-[submodule "compile"]
-	path = compile
-	url = https://github.com/Tengs-Penkwe/compile.git
+[submodule "compilation"]
+	path = compilation
+	url = https://github.com/Tengs-Penkwe/compilation.git
 
 [submodule "Linux"]
 	path = Linux
