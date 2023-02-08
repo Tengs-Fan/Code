@@ -6,4 +6,5 @@ a.out
 *.img
 debug/
 .un\~
+node_module
 

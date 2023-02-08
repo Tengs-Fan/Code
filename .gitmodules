@@ -51,3 +51,6 @@
 [submodule "Practice"]
 	path = Practice
 	url = git@github.com:Tengs-Penkwe/Practice.git
+[submodule "Haskell"]
+	path = Haskell
+	url = git@github.com:Tengs-Penkwe/Haskell.git
