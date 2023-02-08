@@ -6,18 +6,6 @@
 	path = Unix
 	url = https://github.com/Tengs-Penkwe/Unix.git
 
-[submodule "Origin-OS-x86"]
-	path = Origin-OS-x86
-	url = https://github.com/Tengs-Penkwe/Origin-OS-x86.git
-
-[submodule "rust-OS-RISCV"]
-	path = rust-OS-RISCV
-	url = https://github.com/Tengs-Penkwe/rust-OS-RISCV.git 
-
-[submodule "verilog-CPU-openMIPS"]
-	path = verilog-CPU-openMIPS
-	url = https://github.com/Tengs-Penkwe/verilog-CPU-openMIPS.git 
-
 [submodule "compilation"]
 	path = compilation
 	url = https://github.com/Tengs-Penkwe/compilation.git
@@ -26,10 +14,6 @@
 	path = Linux
 	url = https://github.com/Tengs-Penkwe/Linux.git
 
-[submodule "chisel-examples"]
-	path = chisel-examples
-	url = https://github.com/Tengs-Penkwe/chisel-examples.git
-	
 [submodule "OSTEP"]
 	path = OSTEP
 	url = https://github.com/Tengs-Penkwe/OSTEP.git
