@@ -54,3 +54,6 @@
 [submodule "Haskell"]
 	path = Haskell
 	url = git@github.com:Tengs-Penkwe/Haskell.git
+[submodule "Rust"]
+	path = Rust
+	url = git@github.com:Tengs-Penkwe/Rust.git
