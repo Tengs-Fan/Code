@@ -38,3 +38,6 @@
 [submodule "Rust"]
 	path = Rust
 	url = git@github.com:Tengs-Penkwe/Rust.git
+[submodule "Cpp"]
+	path = Cpp
+	url = git@github.com:Tengs-Penkwe/Cpp.git
