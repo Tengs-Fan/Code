@@ -41,3 +41,12 @@
 [submodule "Cpp"]
 	path = Cpp
 	url = git@github.com:Tengs-Penkwe/Cpp.git
+[submodule "Prolog"]
+	path = Prolog
+	url = git@github.com:Tengs-Penkwe/Prolog.git
+[submodule "Category_Theory"]
+	path = Category_Theory
+	url = git@github.com:Tengs-Penkwe/Category_Theory.git
+[submodule "Understanding_Computation"]
+	path = Understanding_Computation
+	url = git@github.com:Tengs-Penkwe/Understanding_Computation.git
