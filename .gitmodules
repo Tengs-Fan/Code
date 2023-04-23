@@ -50,3 +50,6 @@
 [submodule "Understanding_Computation"]
 	path = Understanding_Computation
 	url = git@github.com:Tengs-Penkwe/Understanding_Computation.git
+[submodule "Art_Of_Programming"]
+	path = Art_Of_Programming
+	url = git@github.com:Tengs-Penkwe/Art_Of_Programming.git
