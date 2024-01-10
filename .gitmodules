@@ -56,3 +56,6 @@
 [submodule "Graphics"]
 	path = Graphics
 	url = git@github.com:Tengs-Penkwe/Graphics.git
+[submodule "Parallel"]
+	path = Parallel
+	url = git@github.com:Tengs-Penkwe/Parallel.git
