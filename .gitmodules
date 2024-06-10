@@ -62,3 +62,6 @@
 [submodule "Algorithms"]
 	path = Algorithms
 	url = git@github.com:Tengs-Penkwe/Algorithms.git
+[submodule "AI"]
+	path = AI
+	url = git@github.com:Tengs-Fan/AI.git
