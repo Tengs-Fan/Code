@@ -1,0 +1,570 @@
+<title>How LLMs Read Images</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: long-form report, sticky contents rail on wide screens, one reading column; a patch-grid motif marks the pipeline figure */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --fg: #16212c;
+  --muted: #56636f;
+  --rule: #d6dde3;
+  --accent: #1d5c9e;
+  --accent-soft: #e2ecf6;
+  --mark: #b86a0c;
+  --mark-soft: #f7ead6;
+  --code-bg: #e9eef2;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --step--1: 0.86rem;
+  --step-0: 1.06rem;
+  --step-1: 1.3rem;
+  --step-2: 1.7rem;
+  --step-3: clamp(2.1rem, 5vw, 3.2rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151c; --surface: #141d26; --fg: #e2e9ef; --muted: #98a6b3; --rule: #263340;
+    --accent: #82b5ec; --accent-soft: #1a2c40; --mark: #e7a54c; --mark-soft: #33260f; --code-bg: #1b2631;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151c; --surface: #141d26; --fg: #e2e9ef; --muted: #98a6b3; --rule: #263340;
+  --accent: #82b5ec; --accent-soft: #1a2c40; --mark: #e7a54c; --mark-soft: #33260f; --code-bg: #1b2631;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: var(--step-0); line-height: 1.62;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 4rem;
+}
+.shell { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
+@media (min-width: 1000px) { .shell { grid-template-columns: 220px minmax(0, 1fr); } }
+header.hero { max-width: 1160px; margin: 0 auto; padding-block: 3.5rem 2rem; display: grid; gap: 1rem; }
+.eyebrow { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+h1 { font-size: var(--step-3); font-weight: 700; margin: 0; max-width: 18ch; }
+.hero .sub { font-size: var(--step-1); color: var(--muted); max-width: 46ch; margin: 0; }
+nav.toc { align-self: start; font-family: var(--font-display); font-size: var(--step--1); }
+@media (min-width: 1000px) { nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 1.5rem); } }
+nav.toc p { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.6rem; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; border-left: 2px solid var(--rule); }
+nav.toc a { display: block; padding-left: 0.8rem; color: var(--fg); text-decoration: none; line-height: 1.3; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); }
+main { min-width: 0; max-width: 72ch; }
+main h2 { font-size: var(--step-2); font-weight: 700; margin: 3.2rem 0 1rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); scroll-margin-top: 1rem; }
+main h3 { font-size: var(--step-1); font-weight: 500; margin: 2rem 0 0.6rem; }
+main p, main ul { margin: 0 0 1rem; }
+main ul { padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+main li::marker { color: var(--accent); }
+a { color: var(--accent); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+strong { font-weight: 600; }
+code { font-family: var(--font-mono); font-size: 0.84em; background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+.lede p:first-child { font-size: var(--step-1); line-height: 1.5; }
+.lede strong { background: linear-gradient(transparent 62%, var(--mark-soft) 62%); }
+.note { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.2rem; font-size: var(--step--1); color: var(--muted); margin: 1.6rem 0; }
+.note p { margin: 0; }
+.note b { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mark); margin-right: 0.4rem; }
+.table-wrap { overflow-x: auto; margin: 1.2rem 0 1.6rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--step--1); line-height: 1.4; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 500; color: var(--muted); background: var(--accent-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+em { font-style: italic; }
+
+/* pipeline figure */
+figure.pipeline { margin: 2rem 0 0.5rem; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1.2rem; }
+figure.pipeline figcaption { font-family: var(--font-display); font-size: var(--step--1); color: var(--muted); margin-top: 1rem; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+.step { display: grid; gap: 0.45rem; align-content: start; }
+.step .n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); letter-spacing: 0.06em; }
+.step h4 { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin: 0; }
+.step p { font-size: 0.82rem; line-height: 1.4; color: var(--muted); margin: 0; }
+.step .dim { font-family: var(--font-mono); font-size: 0.74rem; color: var(--mark); }
+.viz { height: 56px; display: flex; align-items: center; }
+.grid { display: grid; gap: 2px; }
+.grid i { display: block; width: 9px; height: 9px; border-radius: 1px; background: var(--accent); }
+.g8 { grid-template-columns: repeat(8, 9px); }
+.g8 i:nth-child(odd) { opacity: 0.55; }
+.g8 i:nth-child(3n) { opacity: 0.8; }
+.g4 { grid-template-columns: repeat(4, 20px); }
+.g4 i { width: 20px; height: 9px; }
+.g8.ctx i { opacity: 1; background: linear-gradient(135deg, var(--accent), var(--mark)); }
+.photo { width: 72px; height: 54px; border-radius: 4px; background:
+  radial-gradient(circle at 70% 30%, var(--mark) 0 9px, transparent 10px),
+  linear-gradient(160deg, var(--accent-soft) 0 55%, var(--accent) 55% 100%); border: 1px solid var(--rule); }
+.seq { display: flex; flex-wrap: wrap; gap: 3px; }
+.seq span { font-family: var(--font-mono); font-size: 0.66rem; padding: 2px 4px; border-radius: 3px; background: var(--code-bg); color: var(--fg); }
+.seq span.v { background: var(--accent); color: var(--surface); }
+@media (prefers-reduced-motion: no-preference) {
+  .g8.ctx i { transition: transform .3s; }
+  figure.pipeline:hover .g8.ctx i { transform: scale(1.12); }
+}
+footer { max-width: 1160px; margin: 3rem auto 0; font-size: var(--step--1); color: var(--muted); font-family: var(--font-display); border-top: 1px solid var(--rule); padding-top: 1rem; }
+</style>
+
+<header class="hero">
+  <p class="eyebrow">Vision-language models · research report · 2026</p>
+  <h1>Encoders, not scissors, teach LLMs to see</h1>
+  <p class="sub">Is it just cutting images into vision tokens? Here is what actually happens between the pixels and the language model, and what the 2025–2026 models do.</p>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#summary">Short answer</a></li>
+      <li><a href="#a-vit-turns-patches-into-context-rich-vectors-before-the-llm-sees-anything">A ViT turns patches into context-rich vectors before the LLM sees anything</a></li>
+<li><a href="#connectors-converged-on-a-two-layer-mlp-plus-22-merging">Connectors converged on a two-layer MLP plus 2×2 merging</a></li>
+<li><a href="#pixel-in-and-discrete-token-designs-remain-the-minority">Pixel-in and discrete-token designs remain the minority</a></li>
+<li><a href="#pixel-budgets-not-connector-choice-set-what-a-model-can-read">Pixel budgets, not connector choice, set what a model can read</a></li>
+<li><a href="#training-runs-in-four-stages-align-unfreeze-instruct-reinforce">Training runs in four stages: align, unfreeze, instruct, reinforce</a></li>
+<li><a href="#open-models-share-one-blueprint-closed-labs-publish-only-the-bill">Open models share one blueprint; closed labs publish only the bill</a></li>
+<li><a href="#models-see-more-than-they-can-say">Models see more than they can say</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+    </ol>
+  </nav>
+  <main>
+    <section class="lede" id="summary">
+      <p><strong>No. The common approach is not just cutting an image into vision tokens.</strong> Nearly every production vision-language model (VLM) of 2025–2026 does cut the image into 14- or 16-pixel patches. Those patches then pass through a deep vision transformer (ViT) that was pretrained on its own, usually SigLIP/SigLIP 2, InternViT or an in-house equivalent. Neighbouring outputs are merged 2×2, so one token ends up covering roughly 28×28 or 32×32 pixels. A two-layer MLP then maps them into <strong>continuous "soft token" vectors</strong>, which are spliced into the LLM's input sequence next to ordinary word embeddings. These vectors never pass through a vocabulary.</p>
+<p>The literal "cut and feed" picture describes only two minority branches. <strong>Encoder-free models</strong> (Fuyu, EVE, Mono-InternVL, NEO) linearly project raw pixel patches. <strong>Discrete-token models</strong> (Chameleon, Emu3) quantize images into codebook IDs. Both have historically lagged on text-heavy perception: Chameleon-7B scores <strong>7 on OCRBench</strong>, against <strong>767</strong> for the encoder-free but continuous Mono-InternVL-2B.</p>
+<p>Connector design turns out to matter less than the pixel budget. Controlled studies find resolution and token count dominate. Commercial APIs spend only about <strong>1,000–1,600 tokens on a 4K screenshot</strong> unless a high-resolution mode is selected.</p>
+<p>These pipelines are trained in stages: align the connector, unfreeze for multimodal pretraining, instruction-tune, then apply reinforcement learning. Their weakest link is often not the encoder. Models fail simple geometry tests that linear probes on their own encoders solve at <strong>over 99%</strong>, and they over-trust conflicting text. The 2025–2026 frontier compensates by letting models crop and zoom inside their own reasoning.</p>
+    </section>
+
+    <figure class="pipeline" aria-label="The standard image-to-LLM pipeline">
+      <ol class="steps">
+        <li class="step">
+          <span class="n">STEP 1</span>
+          <div class="viz"><div class="photo"></div></div>
+          <h4>Resize</h4>
+          <p>Fit to a pixel budget the provider or config sets.</p>
+          <span class="dim">e.g. 4K → 1316×728</span>
+        </li>
+        <li class="step">
+          <span class="n">STEP 2</span>
+          <div class="viz"><div class="grid g8" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <h4>Patchify</h4>
+          <p>Strided conv cuts 14 or 16 px squares. The only literal “cut”.</p>
+          <span class="dim">Conv2d(k=P, s=P)</span>
+        </li>
+        <li class="step">
+          <span class="n">STEP 3</span>
+          <div class="viz"><div class="grid g8 ctx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <h4>Encode</h4>
+          <p>A pretrained ViT (SigLIP 2, InternViT) mixes every patch with every other.</p>
+          <span class="dim">~400M–6B params</span>
+        </li>
+        <li class="step">
+          <span class="n">STEP 4</span>
+          <div class="viz"><div class="grid g4" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          <h4>Merge 2×2</h4>
+          <p>Neighbours fold into one wider vector, keeping the grid.</p>
+          <span class="dim">1 token ≈ 28×28 px</span>
+        </li>
+        <li class="step">
+          <span class="n">STEP 5</span>
+          <div class="viz"><div class="seq" aria-hidden="true"><span>What</span><span>is</span><span>&lt;img&gt;</span><span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span><span>&lt;/img&gt;</span><span>?</span></div></div>
+          <h4>Project &amp; splice</h4>
+          <p>A 2-layer MLP maps to LLM width; vectors sit beside word embeddings.</p>
+          <span class="dim">continuous, no vocabulary ID</span>
+        </li>
+      </ol>
+      <figcaption>The standard 2025–2026 pipeline (Qwen, InternVL, Gemma, LLaVA lineage). Only step 2 is “cutting”; steps 3–5 decide what the LLM can actually see.</figcaption>
+    </figure>
+
+    <div class="note"><b>Sourcing</b>The research sessions behind this report could not reach arxiv.org or huggingface.co. Several other primary hosts were also blocked, including openai.com, ai.meta.com, adept.ai and ai.google.dev. Many paper details therefore come from <strong>search-engine snippets</strong> of those pages rather than full-text reads. Others come from GitHub READMEs, Hugging Face <code>transformers</code> source code on GitHub, and Anthropic's documentation, which could all be fetched. Snippet-derived numbers are cited to the page the snippet quoted. Where sources conflict, or a figure is secondary, the text says so. Claims the researchers could not tie to any source were left out.</div>
+
+    <h2 id="a-vit-turns-patches-into-context-rich-vectors-before-the-llm-sees-anything">A ViT turns patches into context-rich vectors before the LLM sees anything</h2>
+<p>Mechanically, patchification is just a strided convolution. In Hugging Face's reference ViT, the patch embedding is <code>nn.Conv2d(channels, hidden, kernel_size=P, stride=P)</code>. This is the same as flattening each P×P×3 patch and multiplying it by one shared matrix. Learned absolute position embeddings and an optional CLS token are then added, with an interpolation routine for unfamiliar resolutions (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/vit/modeling_vit.py" target="_blank" rel="noopener">transformers ViT source</a>).</p>
+<p>LLaVA-1.5 is the canonical case. A 336-pixel CLIP ViT-L/14 yields <strong>(336/14)² = 576 patch tokens</strong> (<a href="https://arxiv.org/pdf/2410.04751" target="_blank" rel="noopener">arXiv 2410.04751</a>). LLaVA takes them from the <strong>penultimate layer</strong> (<code>vision_feature_layer = -2</code>) and drops the CLS token by slicing <code>[:, 1:]</code> (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llava/configuration_llava.py" target="_blank" rel="noopener">transformers LLaVA config</a>). A projector of <code>linear → GELU → linear</code> maps each vector to the LLM's hidden width. The results replace <code>&lt;image&gt;</code> placeholder positions in the embedding sequence (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llava/modeling_llava.py" target="_blank" rel="noopener">transformers LLaVA source</a>).</p>
+<p>Even Fuyu, which has no encoder, labels its projected patches <code>continuous_embeddings</code> in code (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/fuyu/modeling_fuyu.py" target="_blank" rel="noopener">transformers Fuyu source</a>). So the "tokens" an LLM reads are real-valued activations, not entries in a lookup table. Before projection, each one has already been contextualised by every other patch through dozens of bidirectional attention layers.</p>
+<p>This changes the question from "how do you cut the image?" to "what has the encoder learned to keep?" The answer depends on its pretraining objective.</p>
+<h3 id="contrastive-pretraining-keeps-semantics-and-drops-geometry">Contrastive pretraining keeps semantics and drops geometry</h3>
+<p>The encoders that dominate are language-supervised. CLIP-style softmax contrastive training was followed by <strong>SigLIP</strong>, which replaces the batch softmax with an independent pairwise sigmoid loss. That loss "eliminates the need for a global view of all pairwise similarities" and scales more cheaply (<a href="https://github.com/huggingface/transformers/blob/main/docs/source/en/model_doc/siglip.md" target="_blank" rel="noopener">HF SigLIP docs</a>).</p>
+<p><strong>SigLIP 2</strong> (Feb 2025) keeps the sigmoid loss and adds captioning-based pretraining, self-distillation, masked prediction and online data curation. Google reports "significant improvements on localization and dense prediction tasks" and better transfer "when extracting visual representations for VLMs". Sizes range from 86M to 1B parameters (<a href="https://github.com/google-research/big_vision/blob/main/big_vision/configs/proj/image_text/README_siglip2.md" target="_blank" rel="noopener">SigLIP 2 README</a>).</p>
+<p>Apple's <strong>AIMv2</strong> goes further. It pairs the encoder with a decoder that autoregressively generates raw image patches and text. AIMv2-3B reaches <strong>89.5% ImageNet accuracy with a frozen trunk</strong>, and Apple claims it beats CLIP and SigLIP on multimodal understanding (<a href="https://github.com/apple/ml-aim" target="_blank" rel="noopener">apple/ml-aim</a>).</p>
+<p>At the other extreme, InternVL scales its encoder to <strong>InternViT-6B</strong> for its largest models. Smaller models in the family use a 300M variant (<a href="https://github.com/OpenGVLab/InternVL" target="_blank" rel="noopener">InternVL README</a>).</p>
+<p>What each objective throws away shows up in the LLM. Contrastive losses reward whatever separates one caption from another: object identity, scene and salient text. Web captions rarely mention orientation, exact counts or "second from the right", so these losses provide no gradient for them. Reconstruction and captioning objectives force patch-level detail to survive.</p>
+<p>Experiments with multiple encoders back this up:</p>
+<ul>
+<li><strong>Cambrian-1</strong> trained MLLMs on <strong>23 vision backbones</strong>. It found that adding self-supervised encoders such as DINOv2 helps most on vision-centric tasks. Its Spatial Vision Aggregator lets learned queries cross-attend to several encoders' feature maps, each within a fixed spatial window (<a href="https://arxiv.org/abs/2406.16860" target="_blank" rel="noopener">Cambrian-1, arXiv 2406.16860</a>, via search snippet).</li>
+<li><strong>NVIDIA's Eagle</strong> found that "simply concatenating visual tokens from a set of complementary vision encoders is as effective as more complex mixing architectures". It also found that "unlocking vision encoders during MLLM training significantly improves performance" (<a href="https://arxiv.org/html/2408.15998" target="_blank" rel="noopener">Eagle, arXiv 2408.15998</a>, via search snippet).</li>
+<li><strong>DeepSeek-VL</strong> fused SigLIP-L at 384 px for semantics with SAM-B at 1024 px for detail. The two outputs were concatenated into 576 tokens of dimension 2048 (<a href="https://arxiv.org/pdf/2403.05525" target="_blank" rel="noopener">DeepSeek-VL, arXiv 2403.05525</a>, via search snippet).</li>
+</ul>
+<p>Despite these results, the field largely converged on a <strong>single SigLIP-class encoder trained unfrozen</strong>, rather than multi-encoder stacks. Mixtures cost latency and tokens, while unfreezing lets the encoder re-learn the OCR and spatial detail its contrastive objective discarded. The newest refinement taps several encoder depths at once. Qwen3-VL's <strong>DeepStack</strong> "fuses multi-level ViT features to capture fine-grained details". Features from intermediate ViT layers pass through separate mergers and are added into the first LLM layers' hidden states, at no cost in context length (<a href="https://github.com/QwenLM/Qwen3-VL" target="_blank" rel="noopener">Qwen3-VL README</a>; <a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_vl/modeling_qwen3_vl.py" target="_blank" rel="noopener">transformers Qwen3-VL source</a>).</p>
+<h2 id="connectors-converged-on-a-two-layer-mlp-plus-22-merging">Connectors converged on a two-layer MLP plus 2×2 merging</h2>
+<p>There are three classic ways to wire an encoder into an LLM, and they put very different things into the LLM's sequence.</p>
+<p>The <strong>projector</strong> family (LLaVA) passes every patch vector through an MLP.</p>
+<p>The <strong>resampler</strong> family compresses any image into a fixed set of learned queries. BLIP-2's Q-Former uses <strong>32 queries of dimension 768</strong> in a 188M-parameter module. They attend to frozen image features through cross-attention inserted every other block (<a href="https://proceedings.mlr.press/v202/li23q/li23q.pdf" target="_blank" rel="noopener">BLIP-2, ICML 2023</a>). Qwen-VL v1 used a 256-query resampler at 448 px (<a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/1f84412e84da6440ca355d87184cb1b3-Paper-Conference.pdf" target="_blank" rel="noopener">Visual Anchors, NeurIPS 2024</a>). Idefics2 used 64 Perceiver tokens (<a href="https://arxiv.org/html/2405.02246" target="_blank" rel="noopener">arXiv 2405.02246</a>).</p>
+<p>The <strong>cross-attention</strong> family leaves image features out of the sequence entirely. New attention layers are inserted inside the LLM instead. Llama 3's vision adapter places them "after every fourth self-attention layer", on a ViT-H/14 encoder, with the adapter pretrained on about 6B image-text pairs (<a href="https://arxiv.org/pdf/2407.21783" target="_blank" rel="noopener">Llama 3 Herd, arXiv 2407.21783</a>, via search snippet).</p>
+<p>Direct comparisons settled the contest:</p>
+<ul>
+<li><strong>NVIDIA's NVLM</strong> compared decoder-only (NVLM-D), cross-attention (NVLM-X) and hybrid designs on the same backbones and data. The decoder-only version was stronger on OCR and multimodal reasoning. Cross-attention was more compute-efficient for high-resolution input (<a href="https://arxiv.org/html/2409.11402v1" target="_blank" rel="noopener">NVLM, arXiv 2409.11402</a>).</li>
+<li><strong>Hugging Face's Idefics2 ablations</strong> showed the trade-off depends on training. With frozen backbones, cross-attention won (<strong>66.7 vs 60.3</strong>). Once the backbones were trained with LoRA, the fully autoregressive concatenation design won (<strong>69.5 vs 67.3</strong>) (<a href="https://arxiv.org/html/2405.02246" target="_blank" rel="noopener">arXiv 2405.02246</a>).</li>
+<li><strong>Apple's MM1</strong> concluded that "number of visual tokens and image resolution matters most, while the type of VL connector has little effect". Average pooling, attention pooling and its convolutional C-Abstractor "perform almost identically" at 144 tokens (<a href="https://arxiv.org/pdf/2403.09611" target="_blank" rel="noopener">MM1, arXiv 2403.09611</a>).</li>
+<li>A late-2025 paper, jina-vlm, dissents. It argues the connector "significantly impacts both efficiency and performance" (<a href="https://arxiv.org/html/2512.04032" target="_blank" rel="noopener">arXiv 2512.04032</a>).</li>
+</ul>
+<p>Because modern recipes train the LLM anyway, concatenation won. Cross-attention survives mainly where the text model must stay frozen.</p>
+<p>What replaced resamplers as the compression step is a deterministic, grid-preserving merge.</p>
+<ul>
+<li><strong>InternVL</strong> applies pixel shuffle (space-to-depth) to a 448-pixel tile's 32×32 = 1,024 ViT outputs. Concatenating each 2×2 neighbourhood into one wider vector yields <strong>256 tokens per tile</strong> before the MLP (<a href="https://github.com/OpenGVLab/InternVL/blob/main/internvl_chat/internvl/model/internvl_chat/modeling_internvl_chat.py" target="_blank" rel="noopener">InternVL modeling code</a>).</li>
+<li><strong>Qwen2-VL</strong> does the same with "a simple MLP after the ViT [that] compresses each adjacent 2×2 group of tokens into one token". A 224×224 image costs just <strong>66 tokens</strong>: 64 merged patches plus start and end markers (<a href="https://arxiv.org/pdf/2409.12191" target="_blank" rel="noopener">Qwen2-VL, arXiv 2409.12191</a>).</li>
+<li><strong>Gemma 3</strong> pools a frozen 400M SigLIP's output at 896 px to a <strong>fixed 256 soft tokens</strong>. Its own ablation shows how much resolution matters: DocVQA rises from <strong>31.9 at 256 px to 45.4 at 448 px to 59.8 at 896 px</strong> (<a href="https://arxiv.org/html/2503.19786v1" target="_blank" rel="noopener">Gemma 3 report, arXiv 2503.19786</a>).</li>
+</ul>
+<p>Unlike a Perceiver, these merges keep the spatial grid, which matters for OCR and grounding.</p>
+<p>The LLM still needs to know where in the image each token belongs, and models encode this structure explicitly:</p>
+<ul>
+<li>Qwen brackets images with <code>&lt;|vision_start|&gt;</code> and <code>&lt;|vision_end|&gt;</code> (<a href="https://arxiv.org/pdf/2409.12191" target="_blank" rel="noopener">Qwen2-VL</a>).</li>
+<li>Pixtral emits <code>[IMG_BREAK]</code> after each row and <code>[IMG_END]</code> at the end (<a href="https://github.com/mistralai/mistral-common/blob/main/src/mistral_common/tokens/tokenizers/image.py" target="_blank" rel="noopener">mistral-common image tokenizer</a>).</li>
+<li>Idefics3 wraps tiles in textual coordinates such as <code>&lt;row_i_col_j&gt;</code> and <code>&lt;global-img&gt;</code> (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/idefics3/processing_idefics3.py" target="_blank" rel="noopener">transformers Idefics3 processor</a>).</li>
+<li>NVLM inserts <code>&lt;tile_k&gt;</code> tags (<a href="https://arxiv.org/html/2409.11402v1" target="_blank" rel="noopener">NVLM</a>).</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Connector family</th>
+<th>What enters the LLM sequence</th>
+<th>Typical tokens per image</th>
+<th>Status in 2025–2026</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP projector (LLaVA-1.5)</td>
+<td>Every projected patch</td>
+<td>576</td>
+<td>Ancestor of the standard design</td>
+</tr>
+<tr>
+<td>MLP + 2×2 merge / pixel shuffle (Qwen, InternVL, Idefics3, SmolVLM)</td>
+<td>Grid-preserving merged patches</td>
+<td>256 per 448-px tile; ~1 per 28×28 px</td>
+<td><strong>Dominant</strong></td>
+</tr>
+<tr>
+<td>Fixed pooling (Gemma 3)</td>
+<td>256 pooled vectors per 896-px crop</td>
+<td>256 per crop</td>
+<td>Used by Google's open models</td>
+</tr>
+<tr>
+<td>Q-Former / Perceiver (BLIP-2, Qwen-VL v1, Idefics2)</td>
+<td>Fixed learned queries</td>
+<td>32–256</td>
+<td>Faded; lossy for documents</td>
+</tr>
+<tr>
+<td>Cross-attention (Flamingo, Llama 3.2, NVLM-X)</td>
+<td>Nothing; image reached via inserted layers</td>
+<td>0 in-sequence</td>
+<td>Faded; Llama 4 moved to early fusion</td>
+</tr>
+<tr>
+<td>Encoder-free (Fuyu, EVE, Mono-InternVL)</td>
+<td>Linearly projected raw pixel patches</td>
+<td>Varies with resolution</td>
+<td>Research track</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="pixel-in-and-discrete-token-designs-remain-the-minority">Pixel-in and discrete-token designs remain the minority</h2>
+<h3 id="encoder-free-models-move-the-encoder-inside-the-llm">Encoder-free models move the encoder inside the LLM</h3>
+<p><strong>Fuyu-8B</strong> (Adept, Oct 2023) is the one model that really is "just cutting the image into tokens". Raw pixel patches are "linearly projected into the first layer of the transformer". There are no image position embeddings, and an image-newline token marks each raster row (<a href="https://www.adept.ai/blog/fuyu-8b/" target="_blank" rel="noopener">Adept blog</a>). The projection is <code>nn.Linear</code> over 30×30×3 patches (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/fuyu/configuration_fuyu.py" target="_blank" rel="noopener">transformers Fuyu config</a>).</p>
+<p>Its elegance did not translate into results. The encoder-free literature describes it as showing "only average performance" (<a href="https://arxiv.org/pdf/2406.11832" target="_blank" rel="noopener">EVE, arXiv 2406.11832</a>, via search snippet).</p>
+<p>Successors close the gap by giving vision its own capacity inside the LLM:</p>
+<ul>
+<li><strong>EVEv2</strong> copies the Qwen2.5-7B LLM's weights to initialise fully decoupled vision-specific attention, FFN and norm parameters. It feeds patch-16 inputs up to about 1,600 px, trained on <strong>92M pretraining and 7.3M SFT samples</strong> (<a href="https://github.com/baaivision/EVE/blob/main/EVEv2/README.md" target="_blank" rel="noopener">EVEv2 README</a>).</li>
+<li><strong>Mono-InternVL</strong> embeds visual mixture-of-experts layers in a frozen InternLM2-1.8B. It reports first-token latency <strong>up to 67% lower</strong> than modular designs (<a href="https://github.com/OpenGVLab/Mono-InternVL" target="_blank" rel="noopener">Mono-InternVL README</a>).</li>
+<li><strong>NEO</strong> (ICLR 2026) trains on 390M image-text examples and claims to be "greatly narrowing the gap with top-tier modular counterparts". Its authors concede a persisting MMMU and TextVQA gap (<a href="https://arxiv.org/html/2510.14979" target="_blank" rel="noopener">arXiv 2510.14979</a>, via search snippet).</li>
+</ul>
+<p>In effect, these models do not eliminate encoder pretraining. They relocate it into the LLM, protected by frozen or copied weights.</p>
+<h3 id="discrete-codebooks-quantize-away-fine-detail">Discrete codebooks quantize away fine detail</h3>
+<p>The discrete alternative turns an image into vocabulary entries. <strong>Chameleon</strong> (Meta, 2024) encodes a 512×512 image into <strong>1,024 tokens drawn from an 8,192-entry codebook</strong>, inside a shared 65,536-token vocabulary with one output softmax (<a href="https://arxiv.org/pdf/2405.09818" target="_blank" rel="noopener">Chameleon, arXiv 2405.09818</a>). <strong>Emu3</strong> uses a <strong>32,768-entry codebook</strong> and 8×8 spatial compression, producing <strong>4,096 tokens</strong> for a 512×512 image, trained "exclusively with next-token prediction" (<a href="https://arxiv.org/pdf/2409.18869" target="_blank" rel="noopener">Emu3, arXiv 2409.18869</a>).</p>
+<p>The appeal is symmetry: one model can read and write images with the same loss. The cost is information. Back-of-envelope, a Chameleon token carries about 13 bits (log₂ 8,192), so a whole image carries at most about 13 kbit. A single continuous SigLIP patch vector has over a thousand bf16 dimensions. Chameleon's authors concede that their tokenizer struggles to reconstruct text-heavy images, which limits OCR (<a href="https://arxiv.org/pdf/2405.09818" target="_blank" rel="noopener">Chameleon</a>). UniTok's ablations attribute most of the understanding loss to discretisation itself: a 16k codebook cost <strong>about 2.1 average VQA points</strong> (<a href="https://arxiv.org/html/2502.20321v2" target="_blank" rel="noopener">UniTok, arXiv 2502.20321</a>).</p>
+<p>The table below, taken from Mono-InternVL's head-to-head comparison, shows the resulting gap (<a href="https://github.com/OpenGVLab/Mono-InternVL" target="_blank" rel="noopener">Mono-InternVL README</a>). Emu3's recovery shows that better tokenizers and much more training narrow the gap but do not close it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Benchmark</th>
+<th>Chameleon-7B (discrete)</th>
+<th>Emu3-8B (discrete)</th>
+<th>EVE-7B-HD (encoder-free)</th>
+<th>Mono-InternVL-2B (encoder-free)</th>
+<th>Mini-InternVL-2B-1.5 (ViT + MLP)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OCRBench</td>
+<td>7</td>
+<td>687</td>
+<td>398</td>
+<td>767</td>
+<td>654</td>
+</tr>
+<tr>
+<td>TextVQA</td>
+<td>4.8</td>
+<td>64.7</td>
+<td>56.8</td>
+<td>72.6</td>
+<td>70.5</td>
+</tr>
+<tr>
+<td>DocVQA</td>
+<td>1.5</td>
+<td>76.3</td>
+<td>53.0</td>
+<td>80.0</td>
+<td>85.0</td>
+</tr>
+<tr>
+<td>InfoVQA</td>
+<td>5.0</td>
+<td>43.8</td>
+<td>25.0</td>
+<td>43.0</td>
+<td>55.4</td>
+</tr>
+<tr>
+<td>MMBench-EN</td>
+<td>31.1</td>
+<td>58.5</td>
+<td>52.3</td>
+<td>65.5</td>
+<td>70.9</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="unified-models-read-with-continuous-encoders">Unified models read with continuous encoders</h3>
+<p>The 2025 response was to stop forcing one representation to do both jobs.</p>
+<ul>
+<li><strong>Janus-Pro</strong> (DeepSeek, Jan 2025) reads through SigLIP-L at 384 px and writes through a VQ tokenizer. It reaches <strong>MMBench 79.2 and GenEval 0.80</strong> (<a href="https://www.arxiv.org/pdf/2501.17811" target="_blank" rel="noopener">Janus-Pro, arXiv 2501.17811</a>).</li>
+<li><strong>BAGEL</strong> (ByteDance, May 2025) is a 7B-active/14B-total mixture-of-transformers. It combines a ViT for semantics with a VAE for pixels and scores <strong>MMBench 85.0</strong> against Qwen2.5-VL-7B's 83.5 (<a href="https://github.com/ByteDance-Seed/Bagel" target="_blank" rel="noopener">BAGEL GitHub</a>).</li>
+<li><strong>Transfusion</strong> (Meta) keeps next-token loss for text but applies diffusion to <em>continuous</em> image latents. It matches Chameleon's image-to-text performance at <strong>21.8% of the compute</strong> (<a href="https://ai.meta.com/research/publications/transfusion-predict-the-next-token-and-diffuse-images-with-one-multi-modal-model/" target="_blank" rel="noopener">Meta publication page</a>).</li>
+<li>Even discrete purists adapted. Show-o2 abandoned Show-o's discrete tokens for a 3D causal VAE with flow matching (<a href="https://github.com/showlab/Show-o" target="_blank" rel="noopener">Show-o GitHub</a>). Emu3.5 kept next-token pretraining over 10T+ tokens but added parallel "DiDA" decoding for a <strong>~20× per-image speedup</strong> (<a href="https://arxiv.org/html/2510.26583v1" target="_blank" rel="noopener">Emu3.5, arXiv 2510.26583</a>).</li>
+</ul>
+<p>The pattern is consistent. Discrete tokens survive mainly as a <em>generation</em> interface, while reading is done by continuous encoders.</p>
+<h3 id="native-multimodal-describes-training-not-tokenization">"Native multimodal" describes training, not tokenization</h3>
+<p>Frontier marketing blurs this distinction. <strong>Llama 4</strong> uses "early fusion to seamlessly integrate text and vision tokens into a unified model backbone". Yet its vision encoder is "based on MetaCLIP but trained separately in conjunction with a frozen Llama model" (<a href="https://ai.meta.com/blog/llama-4-multimodal-intelligence/" target="_blank" rel="noopener">Meta AI blog</a>). Its inputs are continuous: early fusion means joint pretraining from the first layer, not a shared discrete vocabulary.</p>
+<p>OpenAI says only that GPT-4o is "a single new model end-to-end across text, vision, and audio" (<a href="https://openai.com/index/hello-gpt-4o/" target="_blank" rel="noopener">Hello GPT-4o</a>). Its image input and output representations are undisclosed. Google's Gemini 1.0 report says the models "can natively output images using discrete image tokens". That is an output claim, and the report gives no tokenizer specs (<a href="https://storage.googleapis.com/deepmind-media/gemini/gemini_1_report.pdf" target="_blank" rel="noopener">Gemini 1 report</a>, quoted via secondary reproductions).</p>
+<p>The cleanest evidence on whether fusing early is a good idea comes from Apple's study of <strong>457 models trained from scratch</strong>. Late fusion has "no intrinsic advantage". Early fusion reaches similar loss at equal compute with fewer parameters, and mixture-of-experts layers help by learning modality-specific weights (<a href="https://arxiv.org/html/2504.07951v4" target="_blank" rel="noopener">Scaling Laws for Native Multimodal Models, ICCV 2025</a>).</p>
+<h2 id="pixel-budgets-not-connector-choice-set-what-a-model-can-read">Pixel budgets, not connector choice, set what a model can read</h2>
+<p>If connectors matter little, resolution matters a lot. Two strategies handle images larger than an encoder's native size.</p>
+<p><strong>Tiling</strong> keeps a fixed-size ViT and covers the image with a grid of crops plus one downscaled thumbnail:</p>
+<ul>
+<li><strong>InternVL</strong> enumerates grids of up to 12 tiles by default and picks the one closest to the image's aspect ratio. Each 448-pixel tile costs 256 tokens (<a href="https://github.com/OpenGVLab/InternVL/blob/main/README.md" target="_blank" rel="noopener">InternVL README code</a>). Run through that reference code, a 3840×2160 screenshot becomes 8 tiles plus a thumbnail, <strong>2,304 tokens</strong>. A 1080p frame costs exactly the same, because the grid cap saturates at 1792×896.</li>
+<li><strong>LLaVA-NeXT's AnyRes</strong> costs <strong>2,928 tokens</strong> for a square image on its 2×2 grid, computed from its processor formula (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/llava_next/processing_llava_next.py" target="_blank" rel="noopener">transformers LLaVA-NeXT processor</a>).</li>
+<li><strong>Idefics3</strong> uses 169 tokens per 364-pixel tile, up to <strong>2,873</strong> at its 4×4 maximum (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/idefics3/image_processing_idefics3.py" target="_blank" rel="noopener">transformers Idefics3 image processor</a>).</li>
+</ul>
+<p><strong>Native resolution</strong> instead patchifies the image at its own size and aspect ratio. Qwen2/2.5-VL's <code>smart_resize</code> rounds each side to a multiple of 28 and clamps the area between <code>56×56</code> and <code>28×28×1280</code> pixels. <strong>One LLM token is exactly 28×28 px</strong>, and the default range is 4 to 1,280 tokens (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen2_vl/image_processing_qwen2_vl.py" target="_blank" rel="noopener">transformers Qwen2-VL image processor</a>).</p>
+<p>The pixel cap is the main cost and accuracy knob. A 4K screenshot shrinks to 1316×728, or 1,222 tokens, under the default. Raise the cap to 16,384 tokens and the same screenshot costs <strong>10,549 tokens</strong>. To keep that affordable inside the encoder, Qwen2.5-VL uses full self-attention in only four ViT layers and 112×112-pixel windows elsewhere (<a href="https://arxiv.org/pdf/2502.13923" target="_blank" rel="noopener">Qwen2.5-VL report, arXiv 2502.13923</a>, via search snippet). Qwen3-VL moves to 16-pixel patches, giving an effective stride of 32 and a default of 256–1,280 tokens per image (<a href="https://github.com/QwenLM/Qwen3-VL" target="_blank" rel="noopener">Qwen3-VL README</a>). Kimi-VL's MoonViT accepts up to 3.2 million pixels per image in its 2506 release (<a href="https://github.com/MoonshotAI/Kimi-VL" target="_blank" rel="noopener">Kimi-VL README</a>).</p>
+<h3 id="position-encoding-tells-a-1-d-language-model-about-2-d-space">Position encoding tells a 1-D language model about 2-D space</h3>
+<p>Once flattened, a 576-token image looks to a plain 1-D RoPE model like a 576-word sentence. <strong>Qwen2-VL's M-RoPE</strong> splits rotary frequencies into temporal, height and width sections (<code>mrope_section = [16, 24, 24]</code>). Vision tokens get 3-D positions and text keeps 1-D (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen2_vl/modeling_qwen2_vl.py" target="_blank" rel="noopener">transformers Qwen2-VL source</a>). A side effect is that an h×w image consumes only max(h, w) position indices.</p>
+<p>Successors fixed weaknesses in that scheme:</p>
+<ul>
+<li><strong>Qwen2.5-VL</strong> ties temporal IDs to absolute time (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen2_vl/modeling_qwen2_vl.py" target="_blank" rel="noopener">same source</a>).</li>
+<li><strong>Qwen3-VL</strong> interleaves T, H and W across the full frequency spectrum and serialises video with textual timestamps (<a href="https://github.com/QwenLM/Qwen3-VL" target="_blank" rel="noopener">Qwen3-VL README</a>).</li>
+<li><strong>InternVL3's V2PE</strong> advances the position index by a fraction δ &lt; 1 per visual token so that long multimodal contexts fit the position window (<a href="https://arxiv.org/html/2504.10479v1" target="_blank" rel="noopener">InternVL3, arXiv 2504.10479</a>, via search snippet).</li>
+<li><strong>Pixtral</strong> uses 2-D axial RoPE inside the encoder, plus row-break tokens in the LLM (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/pixtral/modeling_pixtral.py" target="_blank" rel="noopener">transformers Pixtral source</a>).</li>
+</ul>
+<h3 id="commercial-apis-bill-roughly-a-thousand-tokens-per-downsampled-image">Commercial APIs bill roughly a thousand tokens per downsampled image</h3>
+<p>Closed vendors publish pricing rules rather than architectures, but the rules reveal the budgets.</p>
+<p><strong>Anthropic</strong> documents the most exact formula: "An image costs ⌈width/28⌉ × ⌈height/28⌉ visual tokens." It is capped at <strong>1,568 tokens</strong> (1,568-pixel long edge) on most models, and at <strong>4,784 tokens</strong> (2,576-pixel long edge) on the high-resolution tier introduced with Claude Opus 4.7 (<a href="https://platform.claude.com/docs/en/build-with-claude/vision" target="_blank" rel="noopener">Claude vision docs</a>; <a href="https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7" target="_blank" rel="noopener">What's new in Claude 4.7</a>).</p>
+<p><strong>OpenAI's</strong> tile-based models scale images to fit 2048 px, set the short side to 768 px, and charge a base plus a per-512-pixel-tile fee. That is <strong>85 + 170 per tile</strong> for GPT-4o, and reportedly 70 + 140 for GPT-5, per a calculator built from OpenAI's published rules (<a href="https://github.com/jamesmcroft/openai-image-token-calculator/blob/main/src/stores/ModelStore.js" target="_blank" rel="noopener">openai-image-token-calculator</a>). Newer models count 32-pixel patches against budgets. According to search extracts of OpenAI's guide, GPT-5.4's <code>original</code> detail level allows up to <strong>10,000 patches / 6,000 px</strong> and is recommended for OCR and computer use (<a href="https://developers.openai.com/api/docs/guides/images-vision" target="_blank" rel="noopener">OpenAI images guide</a>, via search snippet).</p>
+<p><strong>Google</strong> charges 258 tokens per small image or per 768×768 tile on Gemini 2.x. Gemini 3 replaces that with a <code>media_resolution</code> setting of 280/560/1,120/2,240 tokens, with 1,120 as the recommended default (<a href="https://ai.google.dev/gemini-api/docs/media-resolution?hl=en" target="_blank" rel="noopener">Gemini media resolution docs</a>, via search snippet).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>System (default mode unless noted)</th>
+<th>Tokens for a 3840×2160 screenshot</th>
+<th>Effective pixels per token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT-5 (tile formula)</td>
+<td>910</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GPT-4o (tile formula)</td>
+<td>1,105</td>
+<td>~39×39 px per tile-token</td>
+</tr>
+<tr>
+<td>Gemini 3 (<code>high</code>, default)</td>
+<td>1,120</td>
+<td>fixed budget</td>
+</tr>
+<tr>
+<td>Qwen2.5-VL (default cap)</td>
+<td>1,222</td>
+<td>28×28 px</td>
+</tr>
+<tr>
+<td>Claude, standard tier</td>
+<td>1,560</td>
+<td>28×28 px</td>
+</tr>
+<tr>
+<td>InternVL (12-tile cap + thumbnail)</td>
+<td>2,304</td>
+<td>~28×28 px within tiles</td>
+</tr>
+<tr>
+<td>Claude, Opus 4.7+ high-res tier</td>
+<td>4,784</td>
+<td>28×28 px</td>
+</tr>
+<tr>
+<td>Qwen2.5-VL (cap raised to 16,384)</td>
+<td>10,549</td>
+<td>28×28 px</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>Sources: Anthropic figures from the <a href="https://platform.claude.com/docs/en/build-with-claude/vision" target="_blank" rel="noopener">Claude vision docs</a>. OpenAI, Qwen and InternVL figures were computed by the researchers from the published formulas and reference code cited above. The Gemini figure is the documented per-image budget.</em></p>
+<p>The striking result is convergence. By default, every major system squeezes a 4K screen into roughly a megapixel's worth of tokens, and Anthropic and Qwen spend tokens at the identical 28×28-pixel density. That density is what a 14-pixel patch with a 2×2 merge produces. Fine print on a full-resolution screenshot therefore often falls below the model's sampling floor unless the high-resolution mode is used.</p>
+<h3 id="many-visual-tokens-are-redundant-but-text-tokens-are-not">Many visual tokens are redundant, but text tokens are not</h3>
+<p>For natural-image question answering, vision tokens carry heavy redundancy:</p>
+<ul>
+<li><strong>FastV</strong> discards half the image tokens after LLM layer 2 for "45% theoretical FLOPs reduction without harming the performance" (<a href="https://github.com/pkunlp-icler/FastV" target="_blank" rel="noopener">FastV README</a>).</li>
+<li><strong>VisionZip</strong> keeps about <strong>98.4% / 95.6% / 83.9%</strong> of LLaVA-1.5's accuracy at 128 / 64 / 32 of 576 tokens (<a href="https://openaccess.thecvf.com/content/ICCV2025/papers/Zhang_Beyond_Text-Visual_Attention_Exploiting_Visual_Cues_for_Effective_Token_Pruning_ICCV_2025_paper.pdf" target="_blank" rel="noopener">VisPruner, ICCV 2025</a>, via search snippet).</li>
+<li><strong>InternVL3.5's Visual Resolution Router</strong> chooses 1/4 or 1/16 compression per patch, contributing to a reported <strong>4.05× speedup</strong> (<a href="https://arxiv.org/abs/2508.18265" target="_blank" rel="noopener">InternVL3.5, arXiv 2508.18265</a>).</li>
+</ul>
+<p>Dense text marks the limit. <strong>DeepSeek-OCR</strong> reports <strong>96%+ OCR precision at 9–10× text-to-vision-token compression</strong>, about 90% at 10–12×, and <strong>about 60% at 20×</strong> (<a href="https://arxiv.org/pdf/2510.18234" target="_blank" rel="noopener">DeepSeek-OCR, arXiv 2510.18234</a>, via search snippet). Zhipu's Glyph, which renders long text as images for a VLM to read, finds the best trade-off at only <strong>3–4×</strong> (<a href="https://github.com/thu-coai/Glyph" target="_blank" rel="noopener">Glyph README</a>).</p>
+<p>Read together, these numbers bound what a vision token can hold. One vision token stands in for at most about ten text tokens of transcribable content, and closer to three or four when the model must reason over the text.</p>
+<p>Video stretches budgets further. Qwen3-VL samples at 2 fps, merges consecutive frame pairs into one temporal patch, and shares a total pixel budget across frames, "so token cost scales with clip duration" (<a href="https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_vl/video_processing_qwen3_vl.py" target="_blank" rel="noopener">transformers Qwen3-VL video processor</a>). Gemini 2.x bills a flat 263 tokens per second (<a href="https://firebase.google.com/docs/ai-logic/count-tokens" target="_blank" rel="noopener">Firebase count-tokens docs</a>, via search snippet).</p>
+<h2 id="training-runs-in-four-stages-align-unfreeze-instruct-reinforce">Training runs in four stages: align, unfreeze, instruct, reinforce</h2>
+<p>The soft tokens mean nothing to an LLM until it is taught to read them.</p>
+<p><strong>Stage one</strong> trains only the connector on caption pairs, with encoder and LLM frozen. LLaVA-1.5 used <strong>558K pretraining pairs and 665K instruction samples</strong>, and trained the projector in about a day on one 8×A100 node (<a href="https://openaccess.thecvf.com/content/CVPR2024/papers/Liu_Improved_Baselines_with_Visual_Instruction_Tuning_CVPR_2024_paper.pdf" target="_blank" rel="noopener">LLaVA-1.5, CVPR 2024</a>). Data curation then proved decisive. Cambrian-1's curated 7M instruction set beat LLaVA's 665K by <strong>55.9 vs 40.7</strong> on average (<a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/9ee3a664ccfeabc0da16ac6f1f1cfe59-Paper-Conference.pdf" target="_blank" rel="noopener">Cambrian-1, NeurIPS 2024</a>, via search snippet). Ai2's Molmo collected dense captions from human <em>speech</em> descriptions to avoid distilling another VLM (<a href="https://allenai.org/blog/molmo" target="_blank" rel="noopener">Ai2 Molmo blog</a>).</p>
+<p><strong>Stage two</strong> unfreezes for large-scale multimodal pretraining. Qwen3-VL begins with a merger-only warm-up and then trains all parameters at progressively longer sequence lengths, <strong>8K, then 32K, then 256K</strong>. It uses square-root reweighting of text-only and multimodal losses so language ability is not eroded (<a href="https://arxiv.org/pdf/2511.21631" target="_blank" rel="noopener">Qwen3-VL report, arXiv 2511.21631</a>, via search snippet).</p>
+<p>The freezing choices differ by lab, and each one shows what that lab was trying to protect:</p>
+<ul>
+<li>Gemma 3 keeps its SigLIP encoder <strong>frozen throughout</strong> and shares it across its 4B, 12B and 27B models (<a href="https://arxiv.org/pdf/2503.19786" target="_blank" rel="noopener">Gemma 3 report</a>).</li>
+<li>Llama 4 trained its encoder against a frozen Llama before joint pretraining on more than 30T tokens (<a href="https://ai.meta.com/blog/llama-4-multimodal-intelligence/" target="_blank" rel="noopener">Meta AI blog</a>).</li>
+<li>Mono-InternVL inverts the usual choice, freezing the LLM and training only its visual experts (<a href="https://github.com/OpenGVLab/Mono-InternVL" target="_blank" rel="noopener">Mono-InternVL README</a>).</li>
+</ul>
+<p><strong>Stage three</strong> is instruction SFT on curated multitask data.</p>
+<p><strong>Stage four</strong>, new in 2025, borrows reasoning-model reinforcement learning:</p>
+<ul>
+<li>InternVL3.5's <strong>Cascade RL</strong> runs offline preference optimisation (MPO) "for stable convergence" and then online RL "for refined alignment". It reports up to <strong>+16.0% overall reasoning</strong>, although a reviewer notes that the abstract does not separate this gain from scale and data effects (<a href="https://arxiv.org/abs/2508.18265" target="_blank" rel="noopener">InternVL3.5</a>; <a href="https://pith.science/paper/2508.18265" target="_blank" rel="noopener">Pith review</a>).</li>
+<li>GLM-4.1V-Thinking uses curriculum-sampled RL that targets the model's "learning frontier" (<a href="https://arxiv.org/abs/2507.01006" target="_blank" rel="noopener">arXiv 2507.01006</a>).</li>
+<li>DeepEyes learns to emit grounding coordinates, crop and re-ingest regions with pure RL and <strong>no cold-start SFT</strong> (<a href="https://arxiv.org/pdf/2505.14362" target="_blank" rel="noopener">DeepEyes, arXiv 2505.14362</a>).</li>
+<li>Qwen3-VL ships separate "thinking" and "instruct" checkpoints (<a href="https://arxiv.org/pdf/2511.21631" target="_blank" rel="noopener">Qwen3-VL report</a>).</li>
+</ul>
+<h2 id="open-models-share-one-blueprint-closed-labs-publish-only-the-bill">Open models share one blueprint; closed labs publish only the bill</h2>
+<p>The 2025–2026 open landscape is architecturally homogeneous. It varies mainly in resolution strategy and in the size of the LLM, which is increasingly a mixture-of-experts.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Model (release)</th>
+<th>Vision encoder</th>
+<th>Connector / compression</th>
+<th>Resolution strategy</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qwen2.5-VL (Feb 2025)</td>
+<td>Redesigned ViT, 2-D RoPE, window attention, patch 14</td>
+<td>2×2 MLP merger</td>
+<td>Native, 28 px/token</td>
+<td><a href="https://arxiv.org/pdf/2502.13923" target="_blank" rel="noopener">report</a></td>
+</tr>
+<tr>
+<td>Qwen3-VL (Sep–Nov 2025)</td>
+<td>SigLIP2-So400m (SigLIP2-L for 2B/4B), patch 16</td>
+<td>2×2 merger + DeepStack</td>
+<td>Native, 32 px/token, 256K context</td>
+<td><a href="https://arxiv.org/pdf/2511.21631" target="_blank" rel="noopener">report</a>; <a href="https://github.com/QwenLM/Qwen3-VL" target="_blank" rel="noopener">README</a></td>
+</tr>
+<tr>
+<td>InternVL3 / 3.5 (2025)</td>
+<td>InternViT-300M / 6B</td>
+<td>Pixel unshuffle to 256/tile; ViR router (3.5-Flash)</td>
+<td>Dynamic 448-px tiling + thumbnail</td>
+<td><a href="https://arxiv.org/html/2504.10479v1" target="_blank" rel="noopener">InternVL3</a>; <a href="https://arxiv.org/html/2508.18265v1" target="_blank" rel="noopener">InternVL3.5</a></td>
+</tr>
+<tr>
+<td>Gemma 3 (Mar 2025)</td>
+<td>Frozen 400M SigLIP at 896 px</td>
+<td>Pooled to 256 soft tokens</td>
+<td>Fixed size + Pan &amp; Scan crops</td>
+<td><a href="https://arxiv.org/html/2503.19786v1" target="_blank" rel="noopener">report</a></td>
+</tr>
+<tr>
+<td>Llama 4 Scout / Maverick (Apr 2025)</td>
+<td>MetaCLIP-based, trained against frozen Llama</td>
+<td>Not disclosed</td>
+<td>Early fusion into MoE backbone</td>
+<td><a href="https://ai.meta.com/blog/llama-4-multimodal-intelligence/" target="_blank" rel="noopener">Meta blog</a></td>
+</tr>
+<tr>
+<td>Kimi-VL (Apr–Jun 2025)</td>
+<td>MoonViT ~400M, NaViT-style packing, 2-D RoPE</td>
+<td>MLP projector</td>
+<td>Native, up to 3.2 MP</td>
+<td><a href="https://arxiv.org/pdf/2504.07491" target="_blank" rel="noopener">report</a>; <a href="https://github.com/MoonshotAI/Kimi-VL" target="_blank" rel="noopener">README</a></td>
+</tr>
+<tr>
+<td>GLM-4.5V (2025)</td>
+<td>AIMv2-Huge with 3-D convs for video (secondary)</td>
+<td>MLP</td>
+<td>Arbitrary resolution, 3-D RoPE</td>
+<td><a href="https://arxiv.org/abs/2507.01006" target="_blank" rel="noopener">arXiv 2507.01006</a>; <a href="https://www.emergentmind.com/topics/glm-4-5v" target="_blank" rel="noopener">EmergentMind</a></td>
+</tr>
+<tr>
+<td>SmolVLM (Apr 2025)</td>
+<td>SigLIP-class</td>
+<td>Pixel shuffle + MLP</td>
+<td>Image splitting</td>
+<td><a href="https://arxiv.org/html/2504.05299v1" target="_blank" rel="noopener">arXiv 2504.05299</a></td>
+</tr>
+<tr>
+<td>MiniCPM-V</td>
+<td>SigLIP SoViT-400m/14</td>
+<td>One-layer perceiver resampler</td>
+<td>Adaptive slicing</td>
+<td><a href="https://arxiv.org/pdf/2408.01800" target="_blank" rel="noopener">arXiv 2408.01800</a></td>
+</tr>
+<tr>
+<td>DeepSeek-OCR (Oct 2025)</td>
+<td>Compression-oriented encoder</td>
+<td>64–400 tokens per view</td>
+<td>Fixed modes + "Gundam" tiling</td>
+<td><a href="https://github.com/deepseek-ai/DeepSeek-OCR" target="_blank" rel="noopener">README</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>The closed frontier discloses API-level preprocessing and accounting, but nothing about encoders, connectors or training data. OpenAI has disclosed the most about <em>behaviour</em>. Its o3 and o4-mini "think with images", cropping, zooming and rotating inside their chain of thought, and OpenAI reports <strong>95.7% on V*</strong>. It also admits to "overthinking" and to perception errors even after correct tool use (<a href="https://openai.com/index/thinking-with-images/" target="_blank" rel="noopener">OpenAI: Thinking with images</a>). Independent work is less flattering. On the harder O3-Bench, o3 scores <strong>40.8%</strong> (<a href="https://arxiv.org/html/2512.18745" target="_blank" rel="noopener">InSight-o3, arXiv 2512.18745</a>).</p>
+<p>Google offers the richest resolution control through <code>media_resolution</code>. Anthropic publishes the pixel-to-token formula and, since Opus 4.7 in April 2026, accepts <strong>2,576-pixel, ~3.75 MP</strong> images (<a href="https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7" target="_blank" rel="noopener">What's new in Claude 4.7</a>). Whether GPT-5, Gemini 3 or Claude use a CLIP-style encoder, a native jointly trained one, or discrete tokens anywhere in the input path is <strong>not publicly known</strong>. Any confident claim to the contrary is speculation.</p>
+<h2 id="models-see-more-than-they-can-say">Models see more than they can say</h2>
+<p>The pipeline's best-documented failures cluster around information the encoder discards or the LLM ignores.</p>
+<p><strong>Eyes Wide Shut</strong> (CVPR 2024) built MMVP from 150 "CLIP-blind" image pairs. These are images CLIP sees as nearly identical (cosine similarity above 0.95) that DINOv2 separates (below 0.6). Under pair scoring, humans reach <strong>95.7%</strong>, Gemini <strong>40.7%</strong>, GPT-4V <strong>38.7%</strong> and LLaVA-1.5 <strong>24.7%</strong>, against a random baseline of 25% (<a href="https://arxiv.org/html/2401.06209v1" target="_blank" rel="noopener">arXiv 2401.06209</a>, via search snippet). Of nine failure patterns, including orientation, counting, viewpoint and spatial relations, <strong>seven could not be fixed by any large-scale CLIP model</strong>. Interleaving DINOv2 tokens with CLIP tokens added about <strong>10.7 points</strong> (<a href="https://github.com/tsb0601/MMVP" target="_blank" rel="noopener">MMVP GitHub</a>; <a href="https://www.alphaxiv.org/abs/2401.06209" target="_blank" rel="noopener">alphaXiv summary</a>).</p>
+<p>The second failure is subtler. <strong>"Vision language models are blind"</strong> (ACCV 2024) found frontier VLMs averaging about <strong>58.6%</strong> on trivial 2-D primitives such as line intersections, nested squares and overlapping circles. Claude 3.5 Sonnet was best, at about 74%; the figure varies by paper version. Yet <strong>linear probes on the vision encoders reached at least 99.47%</strong> on two of the tasks (<a href="https://arxiv.org/html/2407.06581v6" target="_blank" rel="noopener">arXiv 2407.06581</a>). The information was in the soft tokens. The LLM failed to turn it into words.</p>
+<p>A 2026 layer-wise analysis finds the same pattern from the inside. Models form correct vision-based predictions in intermediate layers, then flip toward text-biased answers in late layers (<a href="https://arxiv.org/html/2606.17953" target="_blank" rel="noopener">arXiv 2606.17953</a>). When text and image conflict, VLMs "disproportionately trust textual data over visual data" (<a href="https://arxiv.org/pdf/2503.02199" target="_blank" rel="noopener">Words or Vision, CVPR 2025</a>). A separate study calls this text dominance "fundamental and pervasive" and partly blames the redundancy of visual tokens (<a href="https://arxiv.org/html/2508.10552v1" target="_blank" rel="noopener">arXiv 2508.10552</a>). Attention pathologies compound the problem: high-norm outlier visual tokens soak up attention, and this correlates with object hallucination (<a href="https://aclanthology.org/2024.emnlp-main.439.pdf" target="_blank" rel="noopener">DAMRO, EMNLP 2024</a>).</p>
+<p>Each failure maps onto a specific stage of the pipeline. Contrastive objectives omit geometry, so the encoder never encodes it. Default pixel caps put small text below the sampling floor. And an LLM trained mostly on language under-uses visual evidence that is present. Active perception targets that last stage. By cropping a region and re-encoding it, the model spends more tokens on the detail that matters. This explains why RL-trained zooming (o3, DeepEyes) moved V*-style benchmarks so far, and also why it does not fix misperception once a crop is in hand.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>"Cutting an image into vision tokens" is the right picture of the first convolution and the wrong picture of everything after it. The working mental model for 2026 is different. A separately pretrained perception network writes a compressed, language-aligned summary into the LLM's embedding space, at a density of roughly one vector per 28×28 pixels, under a budget the provider chooses. Three things follow:</p>
+<ul>
+<li><strong>Encoder choice matters less than it once did.</strong> The binding constraints are now the pixel budget, and the LLM's willingness to use what it receives.</li>
+<li><strong>The cheapest accuracy lever for practitioners is often a resolution setting.</strong> Opting into Claude's high-res tier, GPT-5.4's <code>original</code> detail, Gemini's <code>ultra_high</code>, or a raised <code>max_pixels</code> matters more than the choice of model family.</li>
+<li><strong>The next gains will come from deciding where to look.</strong> Agentic crop-and-zoom, adaptive per-region compression and multi-layer feature injection all spend tokens where detail lives, rather than merely shrinking the image less.</li>
+</ul>
+<p>Two questions remain open. The first is whether the encoder will survive at all. Apple's scaling laws show early fusion is not inherently worse, and encoder-free models like NEO are closing the gap, so the separate ViT may become a training-time scaffold rather than a permanent component, much as the tokenizer-free debate has played out in text. The second is how the closed frontier models actually ingest pixels. It is the biggest unknown in the field: their vendors publish only the invoice, and every architectural claim about GPT-5, Gemini 3 or Claude beyond token accounting remains inference.</p>
+  </main>
+</div>
+
+<footer>Research compiled October 2026 from papers, model reports, reference code and vendor documentation linked inline. Figures marked “via search snippet” were not read in full text.</footer>
